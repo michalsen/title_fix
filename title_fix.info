@@ -1,0 +1,6 @@
+; $Id: $
+
+name = Title Fix
+description = Page Title Fix
+core = "7.x"
+package = Custom

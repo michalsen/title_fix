@@ -1,0 +1,87 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+function title_fix_menu() {
+  $items = array();
+  $items['admin/title_fix'] = array(
+              'title' => 'Title Fix',
+              'page callback' => 'title_fix_page',
+              'access arguments' => array('access title_fix content'),
+              'description' => 'Page Title Control',
+              'access arguments' => array(''),
+              'type' => MENU_NORMAL_ITEM,
+          );
+   return $items;
+}
+
+function title_fix_page() {
+  return drupal_get_form('title_fix_admin_form');
+}
+
+/**
+ * Admin Form
+ */
+function title_fix_admin_form() {
+
+  $form['title'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Home Page Title'),
+    '#default_value' => variable_get('title_fix', 'Default Title'),
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Submit',
+  );
+
+$form['#submit'][] = 'title_fix_admin_submit';
+
+  return $form;
+}
+
+/**
+ * Submit Admin Form
+ */
+function title_fix_admin_submit($form, &$form_state) {
+  variable_set('title_fix', $form_state['values']['title']);
+}
+
+
+
+/**
+ * Implements hook_page_alter().
+ */
+function title_fix_page_alter(&$page) {
+  // What node are we looking at here?
+  $node = menu_get_object();
+
+  // Nice. Let's see if there is a custom page title for it.
+  $result = db_select('page_title', 'n')
+              ->fields('n')
+              ->condition('id', $node->nid,'=')
+              ->execute()
+              ->fetchObject();
+
+  // And if there is, let us set it, or use the node title
+  if (isset($result->page_title)) {
+        $page_title = $result->page_title;
+     }
+      else {
+        $page_title = $node->title;
+    }
+
+  // Here is where we set the title to the page
+  if (isset($page['content']['metatags']['node:page'])) {
+    $page['content']['metatags']['node:page']['title']['#attached']['metatag_set_preprocess_variable'][0][2] = $page_title;
+  }
+  if (isset($page['content']['metatags']['node:webform'])) {
+    $page['content']['metatags']['node:webform']['title']['#attached']['metatag_set_preprocess_variable'][0][2] = $page_title;
+  }
+
+  // Unless it is the home page; then we set it here
+  $page['content']['metatags']['global:frontpage']['title']['#attached']['metatag_set_preprocess_variable'][0][2] = variable_get('title_fix');
+
+
+}
